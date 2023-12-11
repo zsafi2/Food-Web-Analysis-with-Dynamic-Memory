@@ -1,180 +1,287 @@
-14.1 Project 01 - Elementary Cellular Automaton
-Introduction to Cellular Automata
-In this project, the simplest version of a one-dimensional cellular automaton is implemented. Cellular automata are a collection of cells on a specified grid, often called a world, where each cell is either active or inactive (i.e. alive or dead, on or off, 1 or 0, etc.). Rules are specified for how the status of a cell can change through the evolution of the world, where the rules typically involve an analysis of the active statuses of the nearest neighbors for each cell. For certain world types and rule configuration, cellular automata can act as an idealized simulation for life, characterized by periods of determinism sprinkled with moments of chaos. Conway's two-dimensional Game of Life is perhaps the most well-known cellular automaton. An example world for Conway's Game of Life is shown below
+14.2 Project 02 - Food Web Analysis with Dynamic Memory
+Introduction
+In this project, food web analysis is performed by taking user-specified predator-prey relationships to build a dynamically allocated struct array of organisms, which is then used to identify the relationships between the organisms in the food web. Then, the analysis is redone after one of the species goes extinct, which requires completely removing that organism from the food web. That is, the array of organisms AND the set of predator-prey relationships must both be rearranged and reallocated to remove all signs of the extinct species.
 
-Figure 14.1.1: Conway's Game of Life - Gosper's Glider Maker
-
-Elementary Cellular Automata
-This project implements the simplest version of a one-dimensional cellular automaton.
-
-A Sample World & All Possible States
-The world is one-dimensional, and the rules for evolving a cell's active status depend only on the active statuses of the cell itself and the nearest neighbors to the left and right. A 17-cell sample world is shown below, with eight sample cell states that comprise ALL possible cell states, since each cell is either active (1) or not (0), and the state is made up of the 3 nearest cells' active statuses; 2 possible statuses for each cell and 3 total cells, so the total number of possible states is 2^3 = 8. Inactive cells are blank/white, while active cells are filled/black. Note that for this example, the world is an array of size 17, where each element of the array is a cell composed of a single Boolean to store its active status (active=1 or inactive=0) AND a local Boolean array of size 3 to represent the cell's current state.
-
-Figure 14.1.2: Sample World with ALL Possible States
+Figure 14.2.1: Sample Food Web
 
 
-Evolution Rules
-The rules for evolving a world in our elementary cellular automaton are determined from a user-specified integer value in the range 0-255, since they can be uniquely represented by 8-bits. Recall that binary (i.e. base 2) numbers can be converted to the more traditional decimal (i.e. base 10) numbers, using increasing powers of 2. For example,
-.
+Organism Struct & Dynamic Arrays
+For the purposes of this project, an organism is characterized by its struct subitems, as defined in the starter code as follows:
 
-For a refresher on binary numbers, review section 2.13 - Binary Numbers.
+typedef struct Org_struct {
+    char name[20];
+    int* prey; //dynamic array of indices
+    int numPrey;
+} Org;
 
-Since there are only 8 possible states for each cell, we can uniquely assign each state to one of the bits for the rule # entered by the user. Furthermore, the bit value in the binary representation of the rule # sets the evolution behavior for the associated state.  For example, let rule = 150, which was calculated above as a sum of powers of 2 for the following exponents: 7, 4, 2, and 1. Thus rule = 150 is equivalent to 10010110 in binary. Thus, only the cells that have a state equivalent to 7, 4, 2, or 1 will be active in the next generation. Cells with states equivalent to 6, 5, 3, and 0 will be inactive in the next generation. A pictorial representation of the evolution of all possible states for rule 150 is shown below, where the top row gives the state and the bottom row 
+The Org struct contains the name of the organism as a character array (i.e. a string) and a dynamic int array representing its prey (i.e. what it eats) in the food web. The size of the prey array is stored as the numPrey subitem.
 
-Figure 14.1.3: Evolution of All Possible States for Rule 150
+The organisms of the food web are stored in a dynamic array of Org structs, called web, which has size numOrgs that is read-in from user-input. The starter code includes the allocation and initialization of the web array in main(). Note that all organisms are initialized with a name read-in from user-input and no prey (i.e. an empty array of zero size is simply a pointer to NULL):
+
+    printf("Enter names for %d organisms:\n", numOrgs);
+    for (int i = 0; i < numOrgs; ++i) {
+        scanf("%s",web[i].name);
+        web[i].prey = NULL;
+        web[i].numPrey = 0;
+    }
+
+For the remainder of the program, the individual organisms are uniquely identified by their index in the web array, which maintains the order in which the organisms were read-in from user-input.
+
+The predator-prey relationships among the organisms are then read-in from user-input in the format 
+
+[predator index] [prey index]
+where the indices refer to the web array. For each predator-prey relationship, the prey index should be appended to the predator's prey array. That is, the organism at predator index in web must have its prey[ ] array reallocated to allow an additional entry, specifically prey index.
 
 
-Note that for rule 150, states with 1 or 3 active cells are active in the next generation, while states of 0 or 2 active cells are inactive in the next generation. Applying rule 150 to the sample world produces the following 3-generation evolution (where each successive generation is shown below the previous generation):
 
-Figure 14.1.4: Evolution of Sample World using Rule 150 for 3 Generations
+Example Food Web
+As an example, consider the Grassland Food Web, which contains the following 7 organisms (indices precede the organism name):
+
+0: Grass
+1: Grasshopper
+2: Hawk
+3: Lizard
+4: Rabbit
+5: Snake
+6: Mouse
+Now, consider the following 10 predator-prey relationships (with index relationship shown in parentheses):
+
+Mouse eats Grass (6 <- 0)
+Lizard eats Grasshopper (3 <- 1)
+Hawk eats Lizard (2 <- 3)
+Hawk eats Mouse (2 <- 6)
+Hawk eats Snake (2 <- 5)
+Rabbit eats Grass (4 <- 0)
+Hawk eats Grasshopper (2 <- 1)
+Snake eats Mouse (5 <- 6)
+Hawk eats Rabbit (2 <- 4)
+Grasshopper eats Grass (1 <- 0)
+The figure below shows how the organisms are stored in a dynamically allocated Org struct array called web, where each Org has a dynamically allocated int array called prey, which is the list of indices in web for which that organism eats. More on extinction later...
+
+Figure 14.2.2: Sample Woodland Food Web and its Dynamic Org Arrays with Dynamic prey Arrays
 
 
-Of course, this is only ONE sample world (world size and initial active statuses could vary) applying only ONE rule (out of 256 possible rules). We could also extend the the evolution rules to include more neighboring cells. The possibilities are endless. Thus, we need to put some boundaries for the scope of this project:
+Starter Code & Input Files
+The starter code contains the Org struct definition, function headers for two required functions (buildWeb and extinction), the initial setup of the web[ ] array built from user-input, and a scaffolding of all required steps in main(). Look for the TODO statements in the starter code to align them with the tasks below. All required scanf() statements are provided in the starter code, to ensure all user-input is read into the program in the proper order and format. This allows us to use set predefined input files that contain all of the user input for a given food web. Thus, compile the code and use a file to input values to the scanf() calls directly using a redirection operator (<) as follows:
 
-Scope/Limitations of our Elementary Cellular Automaton
-the world will ALWAYS have size 65, given as a global constant variable WORLD_SIZE
-the initial world (i.e. generation 0) ALWAYS starts with a single active cell at the midpoint of the world, i.e. index 32, which leaves 32 inactive cells on each side of the active cell in the middle
-evolution rules ALWAYS use the 3-bit state of the cell, which is determined by the active statuses of the cell immediately to the left, the cell itself, and the cell immediately to the right; thus, each possible state can be represented by a unique 3-bit binary number, which can be converted to a unique decimal number 0-7.
-the world is wrapped front-to-back and back-to-front; so world[0]'s left neighbor is the last element world, and the last element's right neighbor is world[0]
-the rule number must be an integer between 0 and 255, so that it can be converted to a bit array of size 8, each bit associated with an evolution rule for a unique 3-bit state
-With these limitations, a wide range of interesting behavior results across the possible rules. Here is a sample of world evolutions for 18 rules that exhibit different and interesting behavior(see the Wolfram MathWorld article for world evolutions for ALL 256 rules):
+gcc main.c -o prog.out
+./prog.out < GrasslandFoodWeb.txt
+Programming Task I - buildWeb()
+Your first task is to write the buildWeb() function, which adds a predator-prey relation to the food web. In the starter code, buildWeb() is called from main() for each [predator index] [prey index] pair read in from user-input, representing a single predator-prey relationship. This function requires three parts:
 
-Figure 14.1.5: Sample World Evolutions
+Memory allocation: if the predator's prey[ ] array is empty, allocate memory for one index; otherwise, reallocate the predator's prey[ ] array to allow one more additional index. Do NOT use realloc(); instead, the reallocation should be performed manually by malloc'ing a new array, copying the elements to the new array, freeing up the old array, and reassigning the array pointer to the new array.
+Append the new prey: append the prey index as the last element of the predator's prey[ ] array
+Update size of prey[ ] array: update the numPrey subitem for the predator appropriately
+Make sure the memory allocated for each prey[ ] array is ALWAYS the exact (i.e. no extra wasted memory, but not too little) amount of memory needed to store the prey indices for each organism; and that numPrey ALWAYS accurately represents the size of the prey[ ] array.
 
-Implementation - an array of cell structs
-The starter code for this project includes full scaffolding to achieve all of the required tasks/milestones. You are encouraged to navigate to the bottom of this description to find the IDE and scan the starter code in main.c, taking note of the struct definition, function definitions, and helpful comments describing each coding task.
+To check if the web is built correctly, write additional function(s) to print the web in the format consistent with this sample output (for GrasslandFoodWeb.txt):
 
-We are using a struct to represent each cell of the world, with the following definition:
+Food Web Predators & Prey:
+  Grass
+  Grasshopper eats Grass
+  Hawk eats Lizard, Mouse, Snake, Grasshopper, Rabbit
+  Lizard eats Grasshopper
+  Rabbit eats Grass
+  Snake eats Mouse
+  Mouse eats Grass
+Note that all organisms are printed in the order they were read-in from user-input and stored in the web[ ] array. Organisms that eat no other organisms are simply printed, whereas organisms with at least one prey are printed with a formatted list of what they eat, again in the order that the predator-prey relation was entered by the user.
 
-typedef struct cell_struct{
-    bool state[3]; //active status for [left, me, right] cells
-    bool active; //current active status for this cell
-} cell;
-The world  is then represented as an array of cell structs: 
 
-cell world[WORLD_SIZE];
-Implementing the cellular automaton in this way allows a simple procedure to evolve the world to the next generation as follows: 
+Programming Task II - Food Web Analysis
+Now that the food web is built and printed correctly, it is time to perform the following analyses:
 
-update the active subitem for each cell based on their state array subitem for the rule #
-update the state array subitem for each cell using the left, me, and right cell's active subitems
-print the world 
-Make sure to fully update ALL cell's active subitems before beginning to update the state array subitems.
+identify apex predators,
+identify producers
+identify the most flexible eaters
+identify the tastiest food
+calculate the height of each organism in the food web
+categorize each organism as a producer, herbivore, omnivore, or carnivore
+Each analysis is described in the following subsections. Each step should be decomposed into separate function(s) and called from main() in the appropriate place in the starter code. This entire task will involve properly accessing elements of the web[ ] array and the prey[ ] array subitems. 
 
-Sample Output (inputs: rule = 90, #generations = 32)
-Welcome to the Elementary Cellular Automaton!
-Enter the rule # (0-255): 90
+REMINDER: whereas dynamically allocated arrays are declared using a pointer, e.g. 
 
-The bit array for rule #90 is 01011010
+Org* web = (Org*)malloc(numOrgs*sizeof(Org));
+the square bracket access/assignment operator can be used just like a traditional array, e.g.
 
-The evolution of all possible states are as follows:
-|***|   |** |   |* *|   |*  |   | **|   | * |   |  *|   |   | 
- | |     |*|     | |     |*|     |*|     | |     |*|     | |    
+scanf("%s",web[i].name); //assigns name for ith Org in web using user-input
 
-Enter the number of generations: 32
 
-Initializing world & evolving...
-                                *                                
-                               * *                               
-                              *   *                              
-                             * * * *                             
-                            *       *                            
-                           * *     * *                           
-                          *   *   *   *                          
-                         * * * * * * * *                         
-                        *               *                        
-                       * *             * *                       
-                      *   *           *   *                      
-                     * * * *         * * * *                     
-                    *       *       *       *                    
-                   * *     * *     * *     * *                   
-                  *   *   *   *   *   *   *   *                  
-                 * * * * * * * * * * * * * * * *                 
-                *                               *                
-               * *                             * *               
-              *   *                           *   *              
-             * * * *                         * * * *             
-            *       *                       *       *            
-           * *     * *                     * *     * *           
-          *   *   *   *                   *   *   *   *          
-         * * * * * * * *                 * * * * * * * *         
-        *               *               *               *        
-       * *             * *             * *             * *       
-      *   *           *   *           *   *           *   *      
-     * * * *         * * * *         * * * *         * * * *     
-    *       *       *       *       *       *       *       *    
-   * *     * *     * *     * *     * *     * *     * *     * *   
-  *   *   *   *   *   *   *   *   *   *   *   *   *   *   *   *  
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
-Sample Output (inputs: rule = 30, #generations = 32)
-Welcome to the Elementary Cellular Automaton!
-Enter the rule # (0-255): -10
-Enter the rule # (0-255): 256
-Enter the rule # (0-255): 30
+Note: all printed outputs of multiple organisms should be in the order they were first entered by user, which is in alphabetical order for provided input .txt files. The predator-prey relationships should also be printed in the order they were read in from the user, which has a random order in the provided input .txt files.
 
-The bit array for rule #30 is 00011110
 
-The evolution of all possible states are as follows:
-|***|   |** |   |* *|   |*  |   | **|   | * |   |  *|   |   | 
- | |     | |     | |     |*|     |*|     |*|     |*|     | |      
 
-Enter the number of generations: 32
-Initializing world & evolving...
-                                *                                
-                               ***                               
-                              **  *                              
-                             ** ****                             
-                            **  *   *                            
-                           ** **** ***                           
-                          **  *    *  *                          
-                         ** ****  ******                         
-                        **  *   ***     *                        
-                       ** **** **  *   ***                       
-                      **  *    * **** **  *                      
-                     ** ****  ** *    * ****                     
-                    **  *   ***  **  ** *   *                    
-                   ** **** **  *** ***  ** ***                   
-                  **  *    * ***   *  ***  *  *                  
-                 ** ****  ** *  * *****  *******                 
-                **  *   ***  **** *    ***      *                
-               ** **** **  ***    **  **  *    ***               
-              **  *    * ***  *  ** *** ****  **  *              
-             ** ****  ** *  ******  *   *   *** ****             
-            **  *   ***  ****     **** *** **   *   *            
-           ** **** **  ***   *   **    *   * * *** ***           
-          **  *    * ***  * *** ** *  *** ** * *   *  *          
-         ** ****  ** *  *** *   *  ****   *  * ** ******         
-        **  *   ***  ****   ** *****   * ***** *  *     *        
-       ** **** **  ***   * **  *    * ** *     *****   ***       
-      **  *    * ***  * ** * ****  ** *  **   **    * **  *      
-     ** ****  ** *  *** *  * *   ***  **** * ** *  ** * ****     
-    **  *   ***  ****   **** ** **  ***    * *  ****  * *   *    
-   ** **** **  ***   * **    *  * ***  *  ** ****   *** ** ***   
-  **  *    * ***  * ** * *  ***** *  ******  *   * **   *  *  *  
- ** ****  ** *  *** *  * ****     ****     **** ** * * ********* 
+Identify Apex Predators
+An apex predator is an organism that is not the prey of any other organism in the food web. For the Grassland Food Web example, the output is as follows:
 
-Coding Tasks/Milestones
-The process to fully implement the elementary cellular automaton is broken up into 8 tasks, as detailed in the following 8 sections. The starter code includes "TODO" statements for each task. The autograder is organized with test cases associated with each task, in order. Thus, you are strongly encouraged to successfully pass all test cases for each task before moving on to the next task.
+Apex Predators:
+  Hawk
+There may be more than one apex predator, in which case print them in the order they were first entered by the user. For the Aquatic Food Web, the output is as follows:
 
-Task 1 - setBitArray()  
-Write the setBitArray() function, which converts the input integer rule to its binary representation. Limit the valid values of rule to the range 0-255. Thus, an 8-bit binary representation is sufficient. Store the 8-bits in the bool array bitArray[8]. Note: because arrays are typically presented with index 0 on the left and increasing indices to the right, it may appear that the bits are stored in reverse order. For example, if rule = 6, then it's binary representation is 00000110, which will get stored in bitArray as {01100000}. In addition to updating bitArray, the function should return true if the input value for rule is valid (i.e. 0-255) and return false if the input value for rule is invalid.
+Apex Predators:
+  Bird
+  Fish
+  Lobster
 
-Task 2 - main() - generate the bit array for the user-specified rule # 
-In main(), read in a valid rule # and generate the rule's 8-bit rule bit array, using a call to the function written in Task 1. If an invalid rule # is entered, repeat the prompt and scan another value in. Continue prompting and scanning until a valid value is read in. Print the bit array so that it displays the bits in the correct binary number order, with the bit for 2^0 at the far right and increasing powers of two going to the left. See the sample outputs above for correct formatting of prompts and code output. It is okay to write additional functions to decompose your code and call them from main() for this task. 
+Identify Producers
+A producer is an organism that does not eat any other organism in the food web (typically, producers are plants and get their energy directly from the sun). For the Grassland Food Web example, the output is as follows:
 
-Task 3 - main() - evolution steps for ALL possible states
-In main(), use the rule bit array from Task 2 to report the evolution step for all possible cell states. See the sample outputs above for correct formatting of code output. For this task, the autograder even checks for correct whitespaces. It is okay to write additional functions to decompose your code and call them from main() for this task. 
+Producers:
+  Grass
+There may be more than one producer, in which case print them in the order they were first entered by the user. For the Aquatic Food Web, the output is as follows:
 
-Task 4 - stateToIndex()
-Write the stateToIndex() function, which converts a 3-bit state array to the associated index of the rule bit array. For example, if state = {0 1 1}, then the function should return 3. As another example, if state = {1 0 1}, then the function should return 5. This is essentially a binary to decimal conversion.
+Producers:
+  Phytoplankton
+  Seaweed
 
-Task 5 - setStates()
-Write the setStates() function, which should update the state array for each cell in the world, using the current active status for the nearby [left, me, right] cells. Remember, the world is wrapped back-to-front and front-to-back. So, you can find world[0]'s left neighbor at the end of the array. Similarly, the last cell in the array has a right neighbor in world[0].
 
-Task 6 - main() - initialize the world
-In main(), allow the user to enter the number of new generations to evolve the world. Then, initialize the world with ONLY the middle cell active. All other cells begin inactive. Make sure to also set the initial state array for each cell using a call to the function written in Task 5. Note: the user enters the number of generations to generate TOTAL, including the initial state. For example, if the user enters 3, then the final output will include 3 printed generations of the world, i.e. the initial world followed by 2 new generations. If the user enters 0 (or less) for the number of generations, then still print the initial state, but no further evolution generations. See the sample outputs above for correct formatting of code output. It is okay to write additional functions to decompose your code and call them from main() for this task. 
+Identify the Most Flexible Eaters
+The most flexible eater is the organism(s) that eat the greatest number of different organisms in the food web. For the Grassland Food Web example, the output is as follows:
 
-Task 7 - evolveWorld()
-Write the evolveWorld() function, which should evolve each cell's active status to the next generation using its state array. The array ruleBitArray[8] contains the 8-bits for the rule #, stored in reverse order when compared to how binary numbers are typically written.
+Most Flexible Eaters:
+  Hawk
+There may be a tie for the most flexible eater, in which case print them in the order they were first entered by the user. For the Mixed Food Web, the output is as follows:
 
-Task 8 - main() - evolve the world through user-specified number of generations
-In main(), evolve the world a user-specified number of total generations. After each evolution step, print each active cell as '*' and each inactive cell as ' ' (i.e. whitespace). See the sample outputs above for correct formatting of code output. For this task, the autograder even checks for correct whitespaces. It is okay to write additional functions to decompose your code and call them from main() for this task.
+Most Flexible Eaters:
+  Hawk
+  Owl
+
+
+Identify the Tastiest Food
+The tastiest food is the organism(s) that get eaten by the greatest number of different organisms in the food web. For the Grassland Food Web example, the output is as follows:
+
+Tastiest Food:
+  Grass
+There may be a tie for the tastiest food, in which case print them in the order they were first entered by the user. For the Aquatic Food Web, the output is as follows:
+
+Tastiest Food:
+  Limpets
+  Mussels
+
+
+Food Web Heights
+The height of an organism in the food web is defined as the longest path from any of the producers up to that organism. Thus, all producers have height 0. Any organism that eats only producers has height 1. All other organisms in the food web have a height that is one more than the maximum height of all their prey. This is innately a recursive definition, and can be calculated using recursion. However, recursion is not required. Another fine approach is use repeated iteration as follows:
+
+set all heights to 0
+assume changes to the heights need to be made
+visit all organisms in web[ ]
+for each organism, set its height as one more than its maximum prey height
+if no changes to the heights were made, then we are done; otherwise, redo step 3
+For the Grassland Food Web example, the output is as follows:
+
+Food Web Heights:
+  Grass: 0
+  Grasshopper: 1
+  Hawk: 3
+  Lizard: 2
+  Rabbit: 1
+  Snake: 2
+  Mouse: 1
+Note: the organisms and their heights are printed in the order they were first entered by the user.
+
+
+Categorize Organisms by Vore Type
+Identify each organism in the food web as one of the following:
+
+Producer: eats no other organism in the food web; the assumption is that all producers are plants and all plants are producers.
+Herbivore: only eat producers (i.e. only plants)
+Omnivore: eats producers and non-producers (i.e. plants and animals)
+Carnivore: only eats non-producers (i.e. only animals)
+For the Grassland Food Web example, where there are no Omnivores, the output is as follows:
+
+Vore Types:
+  Producers:
+    Grass
+  Herbivores:
+    Grasshopper
+    Rabbit
+    Mouse
+  Omnivores:
+  Carnivores:
+    Hawk
+    Lizard
+    Snake
+For the Aquatic Food Web example, the output is as follows:
+
+Vore Types:
+  Producers:
+    Phytoplankton
+    Seaweed
+  Herbivores:
+    Limpets
+    Zooplankton
+  Omnivores:
+    Mussels
+  Carnivores:
+    Bird
+    Crab
+    Fish
+    Lobster
+    Prawn
+    Whelk
+
+Programming Task III - Species Extinction
+A species has gone extinct and must be removed from the food web. The starter code already includes a scanned user-input for the organism index that has gone extinct. For example, if the user enters 3 for the extinction index, then the Lizard must be removed from the food web. The figure above shows the updated web[ ] array and updated prey[ ] array subitems for the extinction of the Lizard. Note the changes: 
+
+the Org struct with Lizard for a name is missing from web[ ] and all Org elements after Lizard have been shifted forward one index; the size of the web[ ] array is now one less
+all organisms that had 3 (the initial index for the Lizard) in their prey[ ] arrays, which is only the Hawk in this example, now have one less element in their prey[ ] array; the index for the extinct organism is removed by shifting the remaining elements forward one; 
+additionally, all prey[ ] array elements greater than 3 must be decremented by one to account for the shift of organisms in the web[ ] array; e.g. since the Snake eats the Mouse, the Snake's prey[ ] array used to store 6, which has been updated to 5 now that the Mouse has shifted forward one index in the web[ ] array due to the Lizard's extinction.
+Remember that both the web[ ] array and prey[ ] arrays are dynamically allocated, so the removal of elements requires careful freeing of some memory and manual reallocation. Do NOT use realloc(); instead, the reallocation should be performed manually by malloc'ing a new array, copy the necessary elements to the new array, freeing up the old array, and reassigning the array pointer to the new array. Edge case: if a food web only has one organism and it goes extinct, instead of malloc'ing an empty array, explicitly set the pointer to NULL.
+
+Your task is to write the extinction() function, which takes in a pointer to the web[ ] array, a pointer to the number of organisms in the web, and the index for the organism to remove due to extinction. The number of organisms is passed-by-pointer since it will be changed in the function and passed back to main(). Similarly, the web[ ] array itself is passed-by-pointer because the array will need reallocation and may have its location changed in the function. Since web is an array, it is a pointer. When we pass an array name by pointer to a function, we are actually passing a pointer to a pointer (i.e. a double pointer):  Org** web.
+
+The starter code includes some tips for the extinction function, which are reproduced here for convenience:
+
+    //      Remember to do the following:
+    //      1. remove organism at index from web[] - DO NOT use realloc(), instead...
+    //          (a) free any malloc'd memory associated with organism at index; i.e. its prey[] subitem
+    //          (b) malloc new space for the array with the new number of Orgs
+    //          (c) copy all but one of the old array elements to the new array, 
+    //              some require shifting forward to overwrite the organism at index
+    //          (d) free the old array
+    //          (e) update the array pointer to the new array
+    //          (f) update numOrgs
+    //      2. remove index from all organsisms' prey[] array subitems - DO NOT use realloc(), instead...
+    //          (a) search for index in all organisms' prey[] arrays; when index is found:
+    //                [i] malloc new space for the array with the new number of ints
+    //               [ii] copy all but one of the old array elements to the new array,
+    //                    keeping the same order some require shifting forward
+    //              [iii] free the old array
+    //               [iv] update the array pointer to the new array
+    //                [v] update the numPrey subitem accordingly
+    //          (b) update all organisms' prey[] elements that are greater than index,
+    //              which have been shifted forward in the web array
+
+
+Once the function is working properly and is fully tested, re-run all of the food web analysis steps on the updated web with the extinct species removed. At this point, your code will be tested for its full output. The full output for two input .txt files are provided here: 
+
+full output for GrasslandFoodWeb.txt with Lizard (index 3) going extinct
+full output for AnotherFoodWeb.txt with Spider (index 10) going extinct
+Notice how the Lizard's extinction has little impact on the Grassland Food Web, since it is near the top of the food web and the apex predator has many options. However, the extinction of the Spider has great impact on Another Food Web, since it is closer to the bottom of the food web and is a key food source for many organisms. 
+
+
+Programming Task IV - Free the Dynamic Memory
+Finally, make sure to free all memory dynamically allocated to heap to prevent potential memory leaks. Dynamically allocated arrays used solely inside of functions must be freed before leaving the function. You must be VERY careful with memory management in extinction() to ensure all malloc'ed memory is freed. Specifically notice that you must free the memory of a prey[ ] array subitem BEFORE removing an Org element from web[ ]. Lastly, main() should end with a complete freeing of ALL prey[ ] array subitems AND the web[ ] array itself. The autograder includes memory leak checks.
+
+
+
+Requirements 
+The food web must be represented ONLY by the Org struct array as declared and allocated in main() in the starter code. No copies of web[ ] can be made, except during reallocation steps. Violations of this requirement will receive a manually graded deduction.
+Use the starter code as provided, adding code to complete functions and developing additional functions to complete the analysis steps, without making any structural changes: do NOT modify the Org struct definition (no name change, do not add subitems, do not remove subitems, do not modify subitem definitions, etc.), and do NOT change the function headers (no name changes, do not add parameters, do not remove parameters, do not modify parameter types, etc.). Violations of this requirement will receive a manually graded deduction.
+Solve each task and the program at large as intended, i.e. build the food web using the Org struct array called web[ ] and fill out the prey[ ] array subitems with indices of the web[ ] array; use this food web data structure to complete all food analysis steps. Additional arrays (static or dynamic) are allowed, as long as they don't represent the same data that is (or should be) stored in web[ ]. Violations of this requirement will receive a manually graded deduction.
+The web[ ] array and prey[ ] array subitems must be dynamically allocated to ALWAYS have the exact amount of memory needed. They prey[ ] array subitems begin empty. As predator-prey relationships are added, the individual prey[ ] array subitems should be reallocated for each additional element. Do NOT use realloc( ); instead, manually malloc space for a new array with modified size, copy over necessary data, free the old array, update the array pointer, and update the size variable. During extinction(), both the web[ ] array and prey[ ] array subitems must be reallocated, when necessary, to utilize the exact amount of memory needed to store the food web data after the species goes extinct. Edge case: instead of malloc'ing an empty array, explicitly set the pointer to NULL. Violations of this requirement will receive a manually graded deduction.
+All dynamically allocated memory must be freed to prevent possible memory leaks. This issue is checked by the autograder but may also receive a manually graded deduction.
+All input ***FoodWeb.txt files have the organisms in alphabetical order, but the predator-prey relationship are in a random order. When multiple organisms are printed, make sure the print order matches the order that the organisms and/or the predator-prey relationships were read-in from user-input. This is managed naturally by using arrays and then printing from index 0 working up in index. During the extinction of a species, make sure to shift remaining elements forward to remove the organism (i.e. do not get tricky by using a swap, just stick with shifting elements forward in the array to replace it); this keeps the order as read-in from user-input.
+Coding style issues are manually graded using deductions, worth up to 25% of the total project score. Style points are graded for following the course standards and best practices laid out in the syllabus, including a header comments, meaningful identifier names, effective comments, code layout, functional decomposition, and appropriate data and control structures.
+Programming projects must be completed and submitted individually. Sharing of code between students in any fashion is not allowed. Use of any support outside of course-approved resources is not allowed, and is considered academic misconduct. Examples of what is allowed: referencing the zyBook, getting support from a TA, general discussions about concepts on piazza, asking questions during lecture, etc. Examples of what is NOT allowed: asking a friend or family member for help, using a "tutor" or posting/checking "tutoring" websites (e.g. Chegg), copy/pasting portions of the project description to an AI chatbot, etc. Check the syllabus for Academic Integrity policies. Violations of this requirement will receive a manually graded deduction, and may be reported to the Dean of Students office.
+Submission
+Develop your program in the IDE below. Use the "Run" button to test your code interactively as you develop your program. Use the "Submit for grading" button to test your code against the suite of autograded test cases, which also submits your program for grading. Formally, the official code submission is your latest submission that scores the highest when run through the autograder. Late submissions are allowed for a point reduction. If you submit your highest scoring program after the deadline it will be treated as a late submission, which will incur the point reduction.
+
+Assignment Inspiration
+
+The overall idea for this project, food web analysis steps, and the food web data was greatly inspired by Ben Stephenson and Jonathan Hudson from University of Calgary.
+
+Copyright Statement. 
+
+This assignment description is protected by U.S. copyright law. Reproduction and distribution of this work, including posting or sharing through any medium, such as to websites like chegg.com is explicitly prohibited by law and also violates UIC's Student Disciplinary Policy (A2-c. Unauthorized Collaboration; and A2-e3. Participation in Academically Dishonest Activities: Material Distribution).
+
+Material posted on any third party sites in violation of this copyright and the website terms will be removed. Your user information will be released to the author.
